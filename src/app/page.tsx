@@ -1,65 +1,131 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState } from "react";
+import type { ScanResult } from "@/lib/checks";
+
+const GRADE_COLOR: Record<string, string> = {
+  A: "bg-emerald-500",
+  B: "bg-emerald-500",
+  C: "bg-amber-500",
+  D: "bg-rose-500",
+  F: "bg-rose-600",
+};
+
+export default function Page() {
+  const [url, setUrl] = useState("github.com");
+  const [result, setResult] = useState<ScanResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function scan() {
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    try {
+      const res = await fetch("/api/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const json = await res.json();
+      if (!res.ok) setError(json.error?.message ?? "Scan failed.");
+      else setResult(json.data);
+    } catch {
+      setError("Network error.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main className="mx-auto max-w-3xl px-6 py-14">
+      <header className="mb-8">
+        <h1 className="flex items-center gap-2 text-2xl font-bold">
+          <span className="text-emerald-400">🛡️</span> HeaderScan
+        </h1>
+        <p className="mt-1 text-sm text-slate-400">
+          Analyze a site&apos;s HTTP security headers, get a grade, and see exactly
+          how to fix what&apos;s missing.
+        </p>
+      </header>
+
+      <div className="flex gap-2">
+        <input
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && scan()}
+          placeholder="example.com"
+          className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm outline-none focus:border-emerald-500"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+        <button
+          onClick={scan}
+          disabled={loading}
+          className="rounded-lg bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:opacity-50"
+        >
+          {loading ? "Scanning…" : "Scan"}
+        </button>
+      </div>
+
+      {error && (
+        <p className="mt-4 rounded-lg border border-rose-800 bg-rose-950/40 px-4 py-3 text-sm text-rose-300">
+          {error}
+        </p>
+      )}
+
+      {result && (
+        <div className="mt-8">
+          <div className="flex items-center gap-4 rounded-xl border border-slate-800 bg-slate-900/60 p-5">
+            <div
+              className={`grid h-16 w-16 place-items-center rounded-xl text-3xl font-black text-slate-950 ${
+                GRADE_COLOR[result.grade]
+              }`}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              {result.grade}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate font-medium">{result.finalUrl}</p>
+              <p className="text-sm text-slate-400">
+                Score {result.score}/100 ·{" "}
+                {result.checks.filter((c) => c.present).length}/
+                {result.checks.length} headers present
+              </p>
+            </div>
+          </div>
+
+          <ul className="mt-4 space-y-3">
+            {result.checks.map((c) => (
+              <li
+                key={c.key}
+                className="rounded-xl border border-slate-800 bg-slate-900/40 p-4"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 font-medium">
+                    <span className={c.present ? "text-emerald-400" : "text-rose-400"}>
+                      {c.present ? "✓" : "✗"}
+                    </span>
+                    {c.label}
+                  </span>
+                  <span className="text-xs text-slate-500">+{c.weight}</span>
+                </div>
+                <p className="mt-2 text-sm text-slate-400">{c.description}</p>
+                {c.present ? (
+                  <code className="mt-2 block overflow-x-auto rounded bg-slate-950 px-3 py-2 text-xs text-emerald-300">
+                    {c.value}
+                  </code>
+                ) : (
+                  <code className="mt-2 block overflow-x-auto rounded bg-slate-950 px-3 py-2 text-xs text-slate-400">
+                    {c.recommendation}
+                  </code>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      )}
+
+      <footer className="mt-12 text-center text-xs text-slate-600">
+        Defensive security tool · built with Next.js &amp; TypeScript
+      </footer>
+    </main>
   );
 }
