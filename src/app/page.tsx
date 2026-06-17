@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ScanResult } from "@/lib/checks";
 
 const GRADE_COLOR: Record<string, string> = {
@@ -16,6 +16,15 @@ export default function Page() {
   const [result, setResult] = useState<ScanResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const ran = useRef(false);
+
+  // Auto-escaneia um exemplo na primeira carga, pra demonstrar a ferramenta.
+  useEffect(() => {
+    if (ran.current) return;
+    ran.current = true;
+    scan();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function scan() {
     setLoading(true);
