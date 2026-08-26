@@ -10,10 +10,6 @@
 <a href="README.es.md"><img src="https://img.shields.io/badge/Español-555555?style=for-the-badge" alt="Español"/></a>
 </div>
 
-<h1 align="center">HeaderScan</h1>
-<p align="center"><em>Analisa os cabeçalhos de segurança HTTP de um site, dá uma nota (A–F) e mostra como corrigir o que falta</em></p>
-<p align="center"><strong>URL → fetch server-side → checagem de headers → nota + recomendações</strong></p>
-
 <div align="center">
 <img src="https://img.shields.io/badge/Next.js_16-000000?style=flat-square&logo=nextdotjs&logoColor=white" alt="nextjs"/>
 <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="ts"/>
